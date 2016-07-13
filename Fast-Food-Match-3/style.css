@@ -1,0 +1,76 @@
+body {
+    background:  url("images/fon.png") no-repeat;
+    -moz-background-size: 100%;
+    -webkit-background-size: 100%;
+    -o-background-size: 100%;
+    background-size: 100%;
+    background-color: sandybrown;
+}
+
+.gameField {
+    position: absolute;
+    background-color: #F4EDD0;
+    border:  3px outset darkred;
+    vertical-align: bottom;
+    width: 500px;
+    height: 500px;
+    left: 600px;
+    top: 155px;
+    cursor: pointer;
+}
+.but1, .but2, .but3, .actbut3{
+    border-radius: 15px;
+    position: absolute;
+    width: 90px;
+    height: 90px;
+    top: 598px;
+    color: sandybrown;
+}
+
+.but1 {
+    background-image: url("images/b1.png");
+    left: 38px;
+}
+
+.but2 {
+    background-image: url("images/b2.png");
+    left: 155px;
+}
+
+.but3 {
+    background-image: url("images/b3.png");
+    left: 275px;
+}
+
+.actbut3{
+    background-image: url("images/actb3.png");
+    left: 275px;
+}
+
+#score {
+    position : absolute;
+    top: 615px;
+    left: 450px;
+    font : 30px Verdana;
+    color: #F4EDD0;
+}
+
+#score_title {
+    position : absolute;
+    top: 570px;
+    left: 420px;
+    font : 30px Verdana;
+    color: #F4EDD0;
+}
+
+#LineTimer {
+    position: absolute;
+    background-color: #F4EDD0;
+    border-radius: 30px;
+    width: 1040px;
+    height: 22px;
+    left: 95px;
+    top: 85px;
+    transition: 1000ms;
+}
+
