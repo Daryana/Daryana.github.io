@@ -9,7 +9,7 @@ body {
 
 .gameField {
     position: absolute;
-    background-color: #F4EDD0;
+    background-color: #fef190;
     border:  3px outset darkred;
     vertical-align: bottom;
     width: 500px;
@@ -18,31 +18,32 @@ body {
     top: 155px;
     cursor: pointer;
 }
-.but1, .but2, .but3, .actbut3{
+.reset_button, .hint_button, .ai_button, .active_ai_button{
     border-radius: 15px;
     position: absolute;
     width: 90px;
     height: 90px;
     top: 598px;
     color: sandybrown;
+    outline: none;
 }
 
-.but1 {
+.reset_button {
     background-image: url("images/b1.png");
     left: 38px;
 }
 
-.but2 {
+.hint_button {
     background-image: url("images/b2.png");
     left: 155px;
 }
 
-.but3 {
+.ai_button {
     background-image: url("images/b3.png");
     left: 275px;
 }
 
-.actbut3{
+.active_ai_button{
     background-image: url("images/actb3.png");
     left: 275px;
 }
@@ -51,7 +52,7 @@ body {
     position : absolute;
     top: 615px;
     left: 450px;
-    font : 30px Verdana;
+    font: 30px Comic Sans MS;
     color: #F4EDD0;
 }
 
@@ -59,8 +60,19 @@ body {
     position : absolute;
     top: 570px;
     left: 420px;
-    font : 30px Verdana;
+    font : 30px Comic Sans MS;
     color: #F4EDD0;
+}
+
+#borderTimer {
+    position: absolute;
+    background-color: darkred;
+    border-width: 10px;
+    border-radius: 30px;
+    width: 1060px;
+    height: 42px;
+    left: 85px;
+    top: 75px;
 }
 
 #LineTimer {
@@ -74,3 +86,8 @@ body {
     transition: 1000ms;
 }
 
+#cookAnimation {
+    position: absolute;
+    left: 80px;
+    top: 50px;
+}
