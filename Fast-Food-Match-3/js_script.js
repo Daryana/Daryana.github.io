@@ -31,18 +31,21 @@ window.onload = function() {
 
     var lineTimer = document.getElementById("LineTimer");
     var startTimerWidth = lineTimer.offsetWidth;
-    var startTime = 120;
-    var presentTime = startTime;
+    var startTime;
+    var presentTime;
+    var bonusTime;
+    var totalScore;
     var time;
 
     var tiles = [];
     var matches = [];
     var moves = [];
+    var lvl;
     var columns = 10,  rows = 10;
     var tilewidth = 50;
     var tileheight = 50;
-    var tileTypeContaner = ["images/1.png", "images/2.png", "images/3.png", "images/4.png", "images/5.png", "images/6.png"];
-    var score = 0;
+    var lvl_type;
+    var score = 0, win_score;
 
     var lastframe = 0, fpstime = 0, framecount = 0, fps = 0;// для анимации, время и кадры в секунду
     var animation_time = 0, animation_interval = 0.3; //текущее время и через которое делать шаг
@@ -50,7 +53,7 @@ window.onload = function() {
     var currentmove = { column1: 0, row1: 0, column2: 0, row2: 0 };
     var gamestate = 'no init';
 
-    var showmoves = false, isaibot = false, gameover = false, isswap = false; //флаги кнопок и конца игры и мыши
+    var showmoves = false, isaibot = false, gameover = false, isswap = false, gamewin = false; //флаги кнопок и конца игры и мыши
 
     var reset_button = document.getElementById("button_reset"); //переменать поле
     reset_button.className = 'reset_button';
@@ -61,13 +64,21 @@ window.onload = function() {
 
     function init() {
         canvas.addEventListener("mousedown", onMouseDown);
+        canvas.addEventListener("mouseup", onMouseUp);
+        lvl = 0;
+        lvl_type = 4;
+        win_score = 1500;
+        totalScore = 0;
+        startTime = 30;
+        presentTime = 0;
+        bonusTime = 0;
         for (var i=0; i<columns; i++) {
             tiles[i] = [];
             for (var j=0; j<rows; j++) {
                 tiles[i][j] = { type: 0, shift:0 }
             }
         }
-        newGame();
+        newLvl();
         stepAnimation(0);
     }
 
@@ -79,46 +90,46 @@ window.onload = function() {
     var  animation_function = animation_remove_matchs;
 
     function animation_remove_matchs(dt) {
-            findMatches();
-            if (matches.length > 0) {
-                for (var i=0; i<matches.length; i++) {
-                    score += ((matches[i].length * 1 - 3) * 50 + 100) * (i + 1);
-                }
-                markMatches();
-                removeMatches();
-                isswap = false;
-                animation_function = animation_shift_tiles;
-            } else {
-                gamestate = 'waiting';
+        findMatches();
+        if (matches.length > 0) {
+            for (var i=0; i<matches.length; i++) {
+                score += ((matches[i].length * 1 - 3) * 50 + 100) * (i + 1);
             }
+            markMatches();
+            removeMatches();
+            isswap = false;
+            animation_function = animation_shift_tiles;
+        } else {
+            gamestate = 'waiting';
+        }
     }
     function animation_shift_tiles(dt) {
-            shiftTiles();
-            isswap = false;
-            animation_function = animation_remove_matchs;
-            findMatches();
-            if (matches.length <= 0) {
-                gamestate = 'waiting';
-            }
+        shiftTiles();
+        isswap = false;
+        animation_function = animation_remove_matchs;
+        findMatches();
+        if (matches.length <= 0) {
+            gamestate = 'waiting';
+        }
     }
 
     function animation_swap_tiles(dt) {
-            swap(currentmove.column1, currentmove.row1, currentmove.column2, currentmove.row2);
-            if (findMatches()) {
-                isswap = false;
-                animation_function = animation_remove_matchs;
-                gamestate = 'processing';
-            } else {
-                isswap = true;
-                animation_function = animation_back_swap_tiles;
-            }
-            findMoves();
-            findMatches();
+        swap(currentmove.column1, currentmove.row1, currentmove.column2, currentmove.row2);
+        if (findMatches()) {
+            isswap = false;
+            animation_function = animation_remove_matchs;
+            gamestate = 'processing';
+        } else {
+            isswap = true;
+            animation_function = animation_back_swap_tiles;
+        }
+        findMoves();
+        findMatches();
     }
 
     function animation_back_swap_tiles(dt) {
-            swap(currentmove.column1, currentmove.row1, currentmove.column2, currentmove.row2);
-            gamestate = 'waiting';
+        swap(currentmove.column1, currentmove.row1, currentmove.column2, currentmove.row2);
+        gamestate = 'waiting';
     }
     // Обновление состояния игры
     function update(t) {
@@ -133,12 +144,12 @@ window.onload = function() {
         framecount++;
         animation_time += dt;
 
-        if (moves.length <= 0) {
-            gameover = true;
-        }
+        if (score >= win_score)  gamewin = true;
+        if (moves.length <= 0)
+            resolveMatches();
         if (animation_time > animation_interval) {
             if (gamestate == 'waiting') { // Игра ждет действий игрока
-                if ((isaibot) && (!gameover)) {
+                if ((isaibot) && (!gameover) && (!gamewin)) {
                     aibot();
                 }
             } else if (gamestate == 'processing') { // Игра занята разрешением и анимацией матчей
@@ -156,29 +167,35 @@ window.onload = function() {
         context.fillStyle = "#fef190";
         context.fillRect(1, 1, canvas.width-2, canvas.height-2);
 
-        var field_width = columns * tilewidth;
-        var field_height = rows * tileheight;
-
-        drawTiles();
         if (showmoves && matches.length <= 0 && gamestate == 'waiting') {
             drawMoves();
         }
         drawTiles();
-        if (gameover) {
-            isaibot = false;
-            ai_button.className = 'ai_button';
-            showmoves = false;
-            context.fillStyle = "rgba(255, 165, 100, 0.9)";
-            context.fillRect(1, 1, canvas.width-2, canvas.height-2);
-            context.fillStyle = "#ffffff";
-            context.font = "24px Comic Sans MS";
-            textdim = context.measureText("Game Over!");
-            context.fillText("Game Over!", (field_width - textdim.width)/2, field_height / 2 + 10);
-            textdim = context.measureText("Очки: " + score.toString());
-            context.fillText("Очки: " + score.toString(), (field_width - textdim.width)/2, field_height / 2 + 140);
+        if (gameover) drawGameTotal('GameOver');
+        if (gamewin) drawGameTotal('Уровень пройден!');
+    }
+    function drawGameTotal(s){
+        isaibot = false;
+        ai_button.className = 'ai_button';
+        showmoves = false;
+        context.fillStyle = 'rgba(255, 165, 100, 0.9)';
+        context.fillRect(1, 1, canvas.width-2, canvas.height-2);
+        context.fillStyle = 'rgba(255, 240, 145, 1)';
+        context.strokeStyle = '#8B0000';
+        context.strokeStyle.fontsize(5);
+        context.fillRect(140, 186, canvas.width - 280, canvas.height - 344);
+        context.strokeRect(140, 186, canvas.width - 280, canvas.height - 344);
+        context.fillStyle = "#8B0000";
+        context.font = "24px Comic Sans MS";
+        textdim = context.measureText(s);
+        context.fillText(s, ((columns * tilewidth) - textdim.width)/2, (rows * tileheight) / 2 - 10);
+        textdim = context.measureText("Очки: " + score.toString());
+        context.fillText("Очки: " + score.toString(), ((columns * tilewidth) - textdim.width)/2, (rows * tileheight) / 2 + 30);
+        if (s == 'Уровень пройден!'){
+            textdim = context.measureText('Next >>');
+            context.fillText('Next >>', ((columns * tilewidth) - textdim.width)/2, (rows * tileheight) / 2 + 60);
         }
     }
-    
     function drawTiles() { // рисуем плитки
         document.getElementById('score').innerHTML = score;
         for (var i = 0; i < columns; i++) {
@@ -188,7 +205,7 @@ window.onload = function() {
                 var tiley = (j + (animation_time / animation_interval) * shift) * tileheight;
                 if (tiles[i][j].type >= 0) {
                     var emg = new Image();
-                    emg.src = tileTypeContaner[tiles[i][j].type];
+                    emg.src = 'images/' + (tiles[i][j].type + 1).toString() + '.png';
                     context.drawImage(emg, tilex, tiley);
                 }
                 if ((column_new != -1 ) ||(row_new != -1)) {
@@ -210,12 +227,12 @@ window.onload = function() {
         var tilex1 = (currentmove.column1 + dshiftx)* tilewidth;
         var tiley1 = (currentmove.row1 + dshifty) * tileheight;
         var emg1 = new Image();
-        emg1.src = tileTypeContaner[tiles[currentmove.column1][currentmove.row1].type];
+        emg1.src = 'images/' + (tiles[currentmove.column1][currentmove.row1].type + 1).toString() + '.png';
 
         var tilex2 = (currentmove.column2 - dshiftx) * tilewidth;
         var tiley2 = (currentmove.row2 - dshifty) * tileheight;
         var emg2 = new Image();
-        emg2.src = tileTypeContaner[tiles[currentmove.column2][currentmove.row2].type];
+        emg2.src = 'images/' + (tiles[currentmove.column2][currentmove.row2].type + 1).toString() + '.png';
 
         context.fillStyle = "#fef190";
         context.fillRect(currentmove.column1* tilewidth, currentmove.row1 * tilewidth, tilewidth, tileheight);
@@ -240,8 +257,12 @@ window.onload = function() {
         }
     }
 
-
-    function newGame() {
+    function newLvl() {
+        if (time != null)
+            clearInterval(time);
+        if (gamewin) lvl++;
+        totalScore += score + bonusTime * 50;
+        bonusTime = 0;
         score = 0;
         gamestate = 'waiting';
         isaibot = false;
@@ -250,6 +271,7 @@ window.onload = function() {
         time = setInterval(animationLineTimer, 1000);
         lineTimer.style.width = startTimerWidth + "px";
         gameover = false;
+        gamewin = false;
         presentTime = startTime;
         createField();
         findMoves();
@@ -261,7 +283,7 @@ window.onload = function() {
         while (!done) {
             for (var i=0; i<columns; i++) {
                 for (var j=0; j<rows; j++) {
-                    tiles[i][j].type = Math.floor(Math.random() * tileTypeContaner.length);
+                    tiles[i][j].type = Math.floor(Math.random() * lvl_type);
                 }
             }
             resolveMatches();
@@ -281,7 +303,7 @@ window.onload = function() {
             findMatches();
         }
     }
-    //вынести в 1
+
     function findMatches() {
         matches = [];
         for (var j=0; j<rows; j++) {
@@ -396,7 +418,7 @@ window.onload = function() {
         for (var i=0; i<columns; i++) {
             for (var j=rows-1; j>=0; j--) {
                 if (tiles[i][j].type == -1) {
-                    tiles[i][j].type = Math.floor(Math.random() * tileTypeContaner.length);
+                    tiles[i][j].type = Math.floor(Math.random() * lvl_type);
                 } else {
                     var shift = tiles[i][j].shift;
                     if (shift > 0) {
@@ -431,8 +453,8 @@ window.onload = function() {
     function getMousePos(canvas, e) {
         var rect = canvas.getBoundingClientRect();
         return {
-            x: Math.round((e.clientX - rect.left)/(rect.right - rect.left)*canvas.width),
-            y: Math.round((e.clientY - rect.top)/(rect.bottom - rect.top)*canvas.height)
+            x: Math.round((e.clientX - rect.left)/(rect.right - rect.left) * canvas.width),
+            y: Math.round((e.clientY - rect.top)/(rect.bottom - rect.top) * canvas.height)
         };
     }
 
@@ -444,37 +466,43 @@ window.onload = function() {
         }
         return { x: -1, y: -1};
     }
+
     var column_new = -1, row_new = -1;
-
+    var mdown;
     function onMouseDown(e) {
-        if (!gameover){
-        var pos = getMousePos(canvas, e);
-        var mt = getMouseTile(pos);
-
-        var column_old = mt.x;
-        var row_old = mt.y;
-
-        if ((column_old != column_new) || (row_old != row_new) || (column_new != -1 ) || (row_new != -1) || (column_old != -1 ) || (row_old != -1)) {
-            if (Math.abs(row_old - row_new) + Math.abs(column_old - column_new) == 1) {
-                animationSwap(column_old, row_old, column_new, row_new);
-                if (findMatches()) {
-                    resolveMatches();
+        mdown = getMouseTile(getMousePos(canvas, e));
+    }
+    function onMouseUp(e) {
+        var mup = getMouseTile(getMousePos(canvas, e));
+        if ((gameover || gamewin) && mdown.x != -1 && mup.x != -1 && mdown.y != -1 && mup.y != -1) newLvl();
+        else if (mdown.x == mup.x && mdown.y == mup.y) {
+            var  column_old = mup.x;
+            var row_old = mup.y;
+            if ((column_new != -1 ) && (row_new != -1) && (column_old != -1 ) && (row_old != -1)) {
+                if ((column_old == column_new) && (row_old == row_new)) {
+                    column_new = -1;
+                    row_new = -1;
+                    return;
                 }
-                else
-                    animationSwap(column_old, row_old, column_new, row_new);
-                column_new = -1;
-                row_new = -1;
-                return;
+                if ((column_old != column_new) || (row_old != row_new)) {
+                    if (Math.abs(row_old - row_new) + Math.abs(column_old - column_new) == 1) {
+                        animationSwap(column_old, row_old, column_new, row_new);
+                        if (findMatches()) resolveMatches();
+                        else
+                            animationSwap(column_old, row_old, column_new, row_new);
+                        column_new = -1;
+                        row_new = -1;
+                        return;
+                    }
+                }
             }
+            column_new = column_old;
+            row_new = row_old;
         }
-        column_new = column_old;
-        row_new = row_old;
     }
-    }
-
     reset_button.onclick = function () {
         clearInterval(time);
-        newGame();
+        newLvl();
     }
     hint_button.onclick = function () {
         showmoves = !showmoves;
@@ -487,6 +515,12 @@ window.onload = function() {
     
     function animationLineTimer() {
         presentTime--;
+        if (gamewin) {
+            clearInterval(time);
+            bonusTime = presentTime;
+            console.log("bonus:" + bonusTime);
+            return;
+        }
         if (presentTime == 0) {
             lineTimer.style.width = "0px";
             gameover = true;
@@ -495,7 +529,7 @@ window.onload = function() {
             var reductionWidth = (startTimerWidth / startTime);
             lineTimer.style.width = reductionWidth * presentTime + "px";
         }
-
+        console.log("time:" + presentTime);
     }
 
     var cookAnimation = document.getElementById("cookAnimation");
